@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-const API_URL = "http://localhost:5000";
+const API_URL = "https://monkmode-vp52.onrender.com";
 const today = new Date().toISOString().split("T")[0];
 
 const DEFAULT_ROUTINES = [
