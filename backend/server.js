@@ -1,4 +1,5 @@
 
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -28,9 +29,14 @@ app.post("/add-rule", async (req, res) => {
   }
 });
 
-mongoose.connect("mongodb+srv://monkmode:Aravindh%406301906805@monkmode.b5q3gny.mongodb.net/monkmode?appName=monkmode")
-    .then(() => console.log("MongoDB connected"))
-    .catch(err => console.log(err));
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error("MongoDB error:", err));
+// Global error logging middleware
+app.use((err, req, res, next) => {
+  console.error("Server error:", err);
+  res.status(500).json({ error: "Internal server error" });
+});
 
 // Test route
 app.get("/", (req, res) => {
