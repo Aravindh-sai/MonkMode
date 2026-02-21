@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import logo from "../assets/logo.png";
 import homeIcon from "../assets/home.png";
 import progressIcon from "../assets/progress.png";
 import logIcon from "../assets/log.png";
@@ -16,16 +17,7 @@ function BottomNav() {
         to="/"
         className={location.pathname === "/" ? "text-white flex flex-col items-center active:scale-90 transition-transform duration-150" : "text-zinc-500 flex flex-col items-center active:scale-90 transition-transform duration-150"}
       >
-        {!homeError ? (
-          <img
-            src={homeIcon}
-            alt="Home"
-            className="w-6 h-6 mb-1"
-            onError={() => setHomeError(true)}
-          />
-        ) : (
-          <span className="mb-1">Home</span>
-        )}
+        <img src={homeIcon} className="w-6 h-6 mb-1" alt="MonkMode" />
       </Link>
 
       <Link
