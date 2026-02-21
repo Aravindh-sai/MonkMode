@@ -1,10 +1,4 @@
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/src/serviceWorker.js")
-      .then(() => console.log("Service Worker Registered"))
-      .catch((err) => console.log("SW registration failed", err));
-  });
-}
+// Service worker registration removed for production cleanup
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
