@@ -10,13 +10,14 @@ import { useState } from "react";
 
 function App() {
   const [hideBottomNav, setHideBottomNav] = useState(false);
+  const [isServerWaking, setIsServerWaking] = useState(false);
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-zinc-950 pb-20">
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/progress" element={<Progress />} />
-          <Route path="/log" element={<Log setHideBottomNav={setHideBottomNav} />} />
+          <Route path="/" element={<Home isServerWaking={isServerWaking} setIsServerWaking={setIsServerWaking} />} />
+          <Route path="/progress" element={<Progress isServerWaking={isServerWaking} setIsServerWaking={setIsServerWaking} />} />
+          <Route path="/log" element={<Log setHideBottomNav={setHideBottomNav} isServerWaking={isServerWaking} setIsServerWaking={setIsServerWaking} />} />
           {/* Removed Settings route */}
         </Routes>
         {!hideBottomNav && <BottomNav />}

@@ -58,6 +58,8 @@ function Log({ setHideBottomNav }) {
     };
     fetchLog();
   }, []);
+  // Loader UI (if needed)
+  // {isServerWaking && <Loader />} // Add loader UI if required
 
   // Auto-save logic (debounced)
   useEffect(() => {

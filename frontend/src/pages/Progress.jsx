@@ -325,6 +325,8 @@ function Progress() {
 
   // Safe guard for groupedData
   if (!groupedData || Object.keys(groupedData).length === 0) return null;
+  // Loader UI (if needed)
+  // {isServerWaking && <Loader />} // Add loader UI if required
 
   // --- Monthly analytics for Graph view ---
   const monthlyAnalytics = Object.entries(groupedData)
