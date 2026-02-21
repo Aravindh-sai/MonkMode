@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Progress from "./pages/Progress";
-// Removed Settings import
 import BottomNav from "./components/BottomNav";
 import Log from "./pages/Log";
 import { useState, useEffect } from "react";
