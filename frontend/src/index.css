@@ -1,0 +1,14 @@
+body {
+	padding-bottom: env(safe-area-inset-bottom);
+	-webkit-tap-highlight-color: transparent;
+}
+html, body {
+	overflow-x: hidden;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
