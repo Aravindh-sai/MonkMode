@@ -1,5 +1,41 @@
 import { useState, useEffect } from "react";
 const API_URL = "https://monkmode-vp52.onrender.com";
+
+// Global backend wake loader state
+let setIsServerWakingGlobal = null;
+
+// Global fetch wrapper
+async function fetchWithWake(url, options = {}) {
+  if (typeof setIsServerWakingGlobal !== "function") {
+    throw new Error("setIsServerWakingGlobal not set");
+  }
+  let wakeTimer;
+  console.log("Calling backend:", url);
+  try {
+    const wakePromise = new Promise((resolve) => {
+      wakeTimer = setTimeout(() => {
+        setIsServerWakingGlobal(true);
+        resolve();
+      }, 1500);
+    });
+    const fetchPromise = fetch(url, options);
+    const response = await Promise.race([fetchPromise, wakePromise]);
+    if (response instanceof Response) {
+      clearTimeout(wakeTimer);
+      setIsServerWakingGlobal(false);
+      return response;
+    }
+    // If wake triggered, continue actual fetch
+    const finalResponse = await fetchPromise;
+    clearTimeout(wakeTimer);
+    setIsServerWakingGlobal(false);
+    return finalResponse;
+  } catch (err) {
+    clearTimeout(wakeTimer);
+    setIsServerWakingGlobal(true);
+    throw err;
+  }
+}
 const today = new Date().toISOString().split("T")[0];
 
 const DEFAULT_ROUTINES = [
@@ -67,29 +103,18 @@ function Home() {
   const [history, setHistory] = useState({});
   const [isLoaded, setIsLoaded] = useState(false);
   const [newRoutine, setNewRoutine] = useState("");
-  const [isServerLoading, setIsServerLoading] = useState(true);
+  const [isServerWaking, setIsServerWaking] = useState(false);
+  // Set global setter for loader
+  setIsServerWakingGlobal = setIsServerWaking;
 
   // Backend-wake fetch logic
   useEffect(() => {
     let ignore = false;
-    let timer = null;
     let retryTimeout = null;
-
     const fetchData = async () => {
-      setIsServerLoading(false); // reset before fetch
-      let loadingTimeout;
-      let didTimeout = false;
-      // Start timer: if >2s, show loading
-      loadingTimeout = setTimeout(() => {
-        setIsServerLoading(true);
-        didTimeout = true;
-      }, 2000);
       try {
-        const res = await fetch(`${API_URL}/data`);
+        const res = await fetchWithWake(`${API_URL}/data`);
         let data = await res.json();
-        clearTimeout(loadingTimeout);
-        setIsServerLoading(false);
-
         // If no document, initialize
         if (!data || !data.currentDate) {
           if (ignore) return;
@@ -98,14 +123,11 @@ function Home() {
           setIsLoaded(true);
           return;
         }
-
         const savedDate = data.currentDate;
         const dbToday = Array.isArray(data.today) ? data.today : [];
         const dbHistory = data.history || {};
-
         let routinesForToday;
         let historyForState = { ...dbHistory };
-
         // If new day, push yesterday into history, reset today
         if (savedDate !== today) {
           if (dbToday.length > 0) {
@@ -119,14 +141,11 @@ function Home() {
         } else {
           routinesForToday = mergeRoutines(DEFAULT_ROUTINES, dbToday);
         }
-
         if (ignore) return;
         setRoutines(routinesForToday);
         setHistory(historyForState);
         setIsLoaded(true);
       } catch (err) {
-        clearTimeout(loadingTimeout);
-        setIsServerLoading(true);
         // Retry after 5s
         if (!ignore) {
           retryTimeout = setTimeout(fetchData, 5000);
@@ -136,7 +155,6 @@ function Home() {
     fetchData();
     return () => {
       ignore = true;
-      clearTimeout(timer);
       clearTimeout(retryTimeout);
     };
   }, []);
