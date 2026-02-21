@@ -67,14 +67,28 @@ function Home() {
   const [history, setHistory] = useState({});
   const [isLoaded, setIsLoaded] = useState(false);
   const [newRoutine, setNewRoutine] = useState("");
+  const [isServerLoading, setIsServerLoading] = useState(true);
 
-  // Fetch and hydrate on mount
+  // Backend-wake fetch logic
   useEffect(() => {
     let ignore = false;
+    let timer = null;
+    let retryTimeout = null;
+
     const fetchData = async () => {
+      setIsServerLoading(false); // reset before fetch
+      let loadingTimeout;
+      let didTimeout = false;
+      // Start timer: if >2s, show loading
+      loadingTimeout = setTimeout(() => {
+        setIsServerLoading(true);
+        didTimeout = true;
+      }, 2000);
       try {
         const res = await fetch(`${API_URL}/data`);
         let data = await res.json();
+        clearTimeout(loadingTimeout);
+        setIsServerLoading(false);
 
         // If no document, initialize
         if (!data || !data.currentDate) {
@@ -111,16 +125,20 @@ function Home() {
         setHistory(historyForState);
         setIsLoaded(true);
       } catch (err) {
-        // Fallback: show defaults, empty history
+        clearTimeout(loadingTimeout);
+        setIsServerLoading(true);
+        // Retry after 5s
         if (!ignore) {
-          setRoutines([...DEFAULT_ROUTINES]);
-          setHistory({});
-          setIsLoaded(true);
+          retryTimeout = setTimeout(fetchData, 5000);
         }
       }
     };
     fetchData();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+      clearTimeout(retryTimeout);
+    };
   }, []);
 
   // Save effect: only after load, on routines/history change
@@ -175,82 +193,93 @@ function Home() {
   const streak = calculateStreak(history, routines);
 
   return (
-    <div className="min-h-screen w-full max-w-md mx-auto text-zinc-100 flex flex-col px-3 pb-24">
-      <div className="w-full max-w-md mx-auto py-8">
-        <h1 className="text-3xl font-semibold mb-1">MonkMode</h1>
-        <p className="text-zinc-400 mb-6">Discipline. Consistency. Progress.</p>
-        <div className="bg-zinc-900 rounded-xl p-4 mb-6 flex justify-between items-center">
-          <div>
-            <p className="text-l font-semibold">{today}</p>
-            <p className="text-sm text-zinc-400">Current Streak</p>
-            <p className="text-xl font-semibold">🔥 {streak} days</p>
+    <>
+      {isServerLoading && (
+        <div className="fixed inset-0 bg-zinc-950 flex items-center justify-center z-50">
+          <div className="text-center space-y-4">
+            <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="text-zinc-300 text-sm">Waking server…</div>
+            <div className="text-zinc-500 text-xs">First load may take up to 60 seconds</div>
           </div>
         </div>
-
-        <div className="bg-zinc-900 rounded-xl p-4 mb-6">
-          <p className="text-sm text-zinc-400 mb-1">Today's Progress</p>
-          <p className="text-lg font-medium">
-            {completedCount} / {totalCount} completed — {progressPercent}%
-          </p>
-          <div className="w-full bg-zinc-800 rounded-full h-3 mt-3">
-            <div
-              className="bg-green-500 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            ></div>
+      )}
+      <div className="min-h-screen w-full max-w-md mx-auto text-zinc-100 flex flex-col px-3 pb-24">
+        <div className="w-full max-w-md mx-auto py-8">
+          <h1 className="text-3xl font-semibold mb-1">MonkMode</h1>
+          <p className="text-zinc-400 mb-6">Discipline. Consistency. Progress.</p>
+          <div className="bg-zinc-900 rounded-xl p-4 mb-6 flex justify-between items-center">
+            <div>
+              <p className="text-l font-semibold">{today}</p>
+              <p className="text-sm text-zinc-400">Current Streak</p>
+              <p className="text-xl font-semibold">🔥 {streak} days</p>
+            </div>
           </div>
-        </div>
 
-        <div className="bg-zinc-900 rounded-xl p-4 mb-6">
-          <h2 className="text-lg font-medium mb-3">Routines</h2>
-          <ul className="space-y-3">
-            {routines.map((routine, index) => (
-              <li
-                key={routine._id || routine.name}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all
-                  ${routine.completed ? "bg-green-900/40" : "bg-zinc-800"}`}
+          <div className="bg-zinc-900 rounded-xl p-4 mb-6">
+            <p className="text-sm text-zinc-400 mb-1">Today's Progress</p>
+            <p className="text-lg font-medium">
+              {completedCount} / {totalCount} completed — {progressPercent}%
+            </p>
+            <div className="w-full bg-zinc-800 rounded-full h-3 mt-3">
+              <div
+                className="bg-green-500 h-3 rounded-full transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              ></div>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900 rounded-xl p-4 mb-6">
+            <h2 className="text-lg font-medium mb-3">Routines</h2>
+            <ul className="space-y-3">
+              {routines.map((routine, index) => (
+                <li
+                  key={routine._id || routine.name}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all
+                    ${routine.completed ? "bg-green-900/40" : "bg-zinc-800"}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={routine.completed}
+                      onChange={() => toggleRoutine(index)}
+                      className="w-5 h-5"
+                    />
+                    <span>{routine.name}</span>
+                  </div>
+                  {!routine.isDefault && (
+                    <button
+                      onClick={() => deleteRoutine(index)}
+                      className="text-red-400 text-sm"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="bg-zinc-900 rounded-xl p-4">
+            <h3 className="text-lg font-medium mb-3">Add Routine</h3>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newRoutine}
+                onChange={(e) => setNewRoutine(e.target.value)}
+                placeholder="Enter routine"
+                className="flex-1 bg-zinc-800 rounded-lg px-3 py-2 outline-none"
+              />
+              <button
+                onClick={addRoutine}
+                className="bg-white text-black px-4 rounded-lg font-medium"
               >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={routine.completed}
-                    onChange={() => toggleRoutine(index)}
-                    className="w-5 h-5"
-                  />
-                  <span>{routine.name}</span>
-                </div>
-                {!routine.isDefault && (
-                  <button
-                    onClick={() => deleteRoutine(index)}
-                    className="text-red-400 text-sm"
-                  >
-                    Delete
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="bg-zinc-900 rounded-xl p-4">
-          <h3 className="text-lg font-medium mb-3">Add Routine</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newRoutine}
-              onChange={(e) => setNewRoutine(e.target.value)}
-              placeholder="Enter routine"
-              className="flex-1 bg-zinc-800 rounded-lg px-3 py-2 outline-none"
-            />
-            <button
-              onClick={addRoutine}
-              className="bg-white text-black px-4 rounded-lg font-medium"
-            >
-              Add
-            </button>
+                Add
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
