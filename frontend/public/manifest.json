@@ -5,6 +5,5 @@
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#09090b",
-  "orientation": "portrait",
-  // icons section removed for production cleanup
+  "orientation": "portrait"
 }
