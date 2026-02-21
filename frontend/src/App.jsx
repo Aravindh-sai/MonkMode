@@ -6,7 +6,11 @@ import Progress from "./pages/Progress";
 // Removed Settings import
 import BottomNav from "./components/BottomNav";
 import Log from "./pages/Log";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { listenForInstall } from "./utils/installPrompt";
+  useEffect(() => {
+    listenForInstall();
+  }, []);
 
 function App() {
   const [hideBottomNav, setHideBottomNav] = useState(false);
